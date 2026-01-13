@@ -1,14 +1,16 @@
 {
-    "Group": "Example",
-    "Name": "ExamplePlugin",
-    "Version": "0.0.2",
-    "Description": "An example plugin for HyTale!",
+    "Group": "xxrexraptorxx",
+    "Name": "Hycraft",
+    "Version": "1.0.0",
+    "Description": "This mod brings Minecraft-style weapons, tools and mobs to Hytale!",
     "Authors": [
         {
-            "Name": "It's you!"
+            "Name": "XxRexRaptorxX",
+            "Email": "raptor-simon@web.de",
+            "Url": "https://www.curseforge.com/members/xxrexraptorxx/projects"
         }
     ],
-    "Website": "example.org",
+    "Website": "https://www.curseforge.com/members/xxrexraptorxx/projects",
     "ServerVersion": "*",
     "Dependencies": {
         
@@ -16,7 +18,7 @@
     "OptionalDependencies": {
         
     },
+    "Main": "xxrexraptorxx.plugin.Hycraft",
     "DisabledByDefault": false,
-    "Main": "org.example.plugin.ExamplePlugin",
     "IncludesAssetPack": true
 }

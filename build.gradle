@@ -1,7 +1,17 @@
+import net.darkhax.curseforgegradle.TaskPublishCurseForge
+
 plugins {
     id 'java'
+    id 'idea'
     id 'org.jetbrains.gradle.plugin.idea-ext' version '1.3'
+    id 'net.darkhax.curseforgegradle' version '1.1.26'
+    //id 'com.diffplug.spotless' version '6.25.0'
 }
+
+apply from: "$rootDir/gradle/initialization.gradle"
+apply from: "$rootDir/gradle/changelogs.gradle"
+apply from: "$rootDir/gradle/publishing.gradle"
+
 
 ext {
     hytaleHome = "${System.getProperty("user.home")}/AppData/Roaming/Hytale"
@@ -68,3 +78,100 @@ idea.project.settings.runConfigurations {
         workingDirectory = serverRunDir.absolutePath
     }
 }
+
+
+//spotless {
+//    java {
+//        target 'src/**/*.java'
+//        eclipse().configFile("${rootDir}/eclipse-java-formatter.xml")
+//        removeUnusedImports()
+//        trimTrailingWhitespace()
+//        endWithNewline()
+//    }
+//    json {
+//        target 'src/**/*.json'
+//        gson().indentWithSpaces(2)
+//        endWithNewline()
+//    }
+//    groovyGradle {
+//        target '**/*.gradle'
+//        indentWithSpaces()
+//        trimTrailingWhitespace()
+//        endWithNewline()
+//    }
+//}
+
+
+// CurseForge Configuration
+tasks.register('publishCurseForge', TaskPublishCurseForge) {
+    def tokens = validateTokens()
+    apiToken = tokens[1] // CurseForge token
+
+    def mainFile = upload(project.findProperty("cf_id") as Integer, jar)
+    mainFile.displayName = "${mod_name.replace(' ', '')} v.${version}"
+    mainFile.releaseType = patchline
+    mainFile.changelog = readLatestChangelog()
+    mainFile.changelogType = 'markdown'
+    mainFile.addJavaVersion("Java ${java_version}")
+    //parsedGameVersions.each { version ->
+    //    mainFile.addGameVersion(version)
+    //}
+    //mainFile.addEnvironment()
+    //environment_type.split(',').each { env ->
+    //    mainFile.addEnvironment(env.trim())
+    //}
+}
+
+// Changelog reading
+String readLatestChangelog() {
+    //1. from workspace
+    def file = rootProject.file("LATEST_CHANGELOG.md")
+    if (file.exists()) {
+        try {
+            def text = file.getText('UTF-8').trim()
+            if (text) {
+                logger.lifecycle("Using changelog from file: ${file}")
+                return text
+            } else {
+                logger.lifecycle("LATEST_CHANGELOG.md exists but is empty.")
+            }
+        } catch (Exception e) {
+            logger.warn("Error from reading LATEST_CHANGELOG.md: ${e.message}")
+        }
+    } else {
+        logger.lifecycle("LATEST_CHANGELOG.md not found in project root.")
+    }
+
+    //2. from Git-HEAD
+    try {
+        ByteArrayOutputStream stdout = new ByteArrayOutputStream()
+        exec {
+            commandLine 'git', 'show', 'HEAD:LATEST_CHANGELOG.md'
+            standardOutput = stdout
+            // don't fail build if git command fails
+            ignoreExitValue = true
+        }
+        def gitText = stdout.toString('UTF-8').trim()
+        if (gitText) {
+            logger.lifecycle("Using changelog from git HEAD:LATEST_CHANGELOG.md")
+            return gitText
+        } else {
+            logger.lifecycle("No LATEST_CHANGELOG.md content found at git HEAD.")
+        }
+    } catch (Exception e) {
+        logger.warn("Error from executing 'git show': ${e.message}")
+    }
+
+    // 3. fallback
+    try {
+        def generated = generateLatestChangelog()
+        logger.lifecycle("Using generated changelog (fallback).")
+        return generated
+    } catch (Exception e) {
+        logger.warn("generateLatestChangelog() failed: ${e.message}")
+    }
+
+    logger.lifecycle("No changelog found — returning empty string.")
+    return ""
+}
+
